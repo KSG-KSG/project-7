@@ -151,7 +151,7 @@ export default function Playground({ dogs }: { dogs: Dog[] }) {
           let hop = 0;
           let tilt = 0;
           if (s.mode === "run") {
-            hop = Math.abs(Math.sin(s.phase)) * size * 0.14;
+            hop = Math.abs(Math.sin(s.phase)) * size * 0.2; // 다리가 없으니 조금 더 통통 튀게
             tilt = Math.sin(s.phase) * 6;
           } else if (s.mode === "jump") {
             hop = Math.sin((s.jumpT / 0.7) * Math.PI) * size * 0.9;
@@ -242,9 +242,6 @@ export default function Playground({ dogs }: { dogs: Dog[] }) {
         >
           <div className="dog-body">
             <div className="dog-bubble">멍!</div>
-            <div className="dog-legs">
-              <i /><i /><i /><i />
-            </div>
             <div className="dog-face">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={dogImage(d)} alt={d.name} draggable={false} />
