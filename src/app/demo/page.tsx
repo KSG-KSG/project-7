@@ -33,7 +33,8 @@ const DOGS: Dog[] = SAMPLES.map(([name, owner, fur, ear], i) => ({
   id: `demo-${i}`,
   owner_id: "demo",
   name,
-  image_path: fakeDogPhoto(fur, ear),
+  image_path: "",
+  demo_image: fakeDogPhoto(fur, ear),
   created_at: "",
   profiles: { nickname: owner },
 }));

@@ -10,7 +10,7 @@ export const supabase: SupabaseClient | null = isConfigured
   : null;
 
 export const BUCKET = "dog-photos";
-export const MAX_DOGS_PER_USER = 5;
+export const MAX_DOGS_PER_USER = 5; // supabase/schema.sql 의 enforce_dog_limit 과 같은 값
 
 export type Dog = {
   id: string;
@@ -19,12 +19,20 @@ export type Dog = {
   image_path: string;
   created_at: string;
   profiles: { nickname: string } | null;
+  /** 데모 전용: Storage 대신 이 이미지(data: URL 등)를 그대로 쓴다. DB 에는 없는 필드. */
+  demo_image?: string;
 };
 
 export const DOG_SELECT = "id, owner_id, name, image_path, created_at, profiles(nickname)";
 
+// Storage 경로("{유저ID}/파일명")만 받는다. 외부 URL·data: URL 등은 표시하지 않는다.
+const STORAGE_PATH = /^[0-9a-f-]{36}\/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$/i;
+
 export function photoUrl(path: string): string {
-  if (/^(https?:|data:)/.test(path)) return path; // 데모용 외부/인라인 이미지
-  if (!supabase) return "";
+  if (!supabase || !STORAGE_PATH.test(path)) return "";
   return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+}
+
+export function dogImage(dog: Dog): string {
+  return dog.demo_image ?? photoUrl(dog.image_path);
 }

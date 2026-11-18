@@ -18,6 +18,7 @@
 1. <https://supabase.com> 에서 새 프로젝트 생성
 2. **SQL Editor** 에 [`supabase/schema.sql`](supabase/schema.sql) 전체를 붙여넣고 **Run**
    - `profiles`, `dogs` 테이블, RLS 정책, 회원가입 트리거, `dog-photos` 버킷, Realtime 설정이 한 번에 만들어집니다.
+   - 1인당 5마리 제한과 사진 경로 검사도 DB 에서 강제됩니다. 이미 만든 프로젝트라도 스키마가 바뀌면 이 파일을 다시 **Run** 하세요 (여러 번 실행해도 안전).
 3. (로컬 테스트를 편하게 하려면) **Authentication → Sign In / Providers → Email** 에서
    **Confirm email** 을 끄면 가입 즉시 로그인됩니다. 켜 두면 인증 메일의 링크를 눌러야 합니다.
 4. **Project Settings → API** (또는 상단 **Connect**) 에서 Project URL 과 anon(또는 publishable) 키 복사

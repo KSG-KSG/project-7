@@ -62,10 +62,38 @@ drop policy if exists "dogs are viewable by everyone" on public.dogs;
 create policy "dogs are viewable by everyone"
   on public.dogs for select using (true);
 
+-- image_path 는 반드시 본인 Storage 폴더의 파일("{유저ID}/파일명")이어야 한다.
+-- (외부 URL·data: URL·다른 사람 폴더 경로를 넣어 모두의 화면에 띄우는 것을 막음)
 drop policy if exists "users can add own dogs" on public.dogs;
 create policy "users can add own dogs"
   on public.dogs for insert to authenticated
-  with check (auth.uid() = owner_id);
+  with check (
+    auth.uid() = owner_id
+    and image_path ~ '^[0-9a-f-]{36}/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$'
+    and split_part(image_path, '/', 1) = auth.uid()::text
+  );
+
+-- 1인당 강아지 5마리 제한 (화면뿐 아니라 DB 에서도 강제).
+-- 같은 유저의 동시 업로드가 제한을 넘지 않도록 유저별 잠금을 건다.
+create or replace function public.enforce_dog_limit()
+returns trigger
+language plpgsql
+security definer set search_path = ''
+as $$
+begin
+  perform pg_advisory_xact_lock(hashtext('dogs:' || new.owner_id::text));
+  if (select count(*) from public.dogs where owner_id = new.owner_id) >= 5 then
+    raise exception '강아지는 한 사람당 5마리까지 올릴 수 있어요.'
+      using errcode = 'check_violation';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists dogs_enforce_limit on public.dogs;
+create trigger dogs_enforce_limit
+  before insert on public.dogs
+  for each row execute function public.enforce_dog_limit();
 
 drop policy if exists "users can delete own dogs" on public.dogs;
 create policy "users can delete own dogs"

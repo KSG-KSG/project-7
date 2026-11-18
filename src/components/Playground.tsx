@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { photoUrl, type Dog } from "@/lib/supabase";
+import { dogImage, type Dog } from "@/lib/supabase";
 
 // 풀밭 영역 (필드 높이 대비 비율). 위쪽은 하늘/언덕.
 const GRASS_TOP = 0.42;
@@ -247,7 +247,7 @@ export default function Playground({ dogs }: { dogs: Dog[] }) {
             </div>
             <div className="dog-face">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={photoUrl(d.image_path)} alt={d.name} draggable={false} />
+              <img src={dogImage(d)} alt={d.name} draggable={false} />
             </div>
           </div>
           <div className="dog-shadow" />
