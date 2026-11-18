@@ -1,0 +1,199 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  font-family: "Pretendard", system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  color: #2b3a1f;
+  background: #bfe6ff;
+  overflow: hidden;
+}
+a { color: inherit; text-decoration: none; }
+code { background: #eef3e8; padding: 1px 6px; border-radius: 4px; }
+
+/* ---------- 공통 UI ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 9px 16px; border-radius: 999px; border: 2px solid #2b3a1f;
+  background: #fff; color: #2b3a1f; font: inherit; font-weight: 700; font-size: 14px;
+  cursor: pointer; white-space: nowrap; transition: transform .1s;
+}
+.btn:hover { transform: translateY(-1px); }
+.btn:disabled { opacity: .5; cursor: default; transform: none; }
+.btn.primary { background: #ffcf4d; }
+.btn.small { padding: 4px 10px; font-size: 12px; }
+.input {
+  width: 100%; padding: 11px 14px; border-radius: 12px; border: 2px solid #cfd9c4;
+  font: inherit; font-size: 15px; outline: none; background: #fff;
+}
+.input:focus { border-color: #6fb54a; }
+.muted { color: #6b7a5f; font-size: 14px; }
+.error { color: #c0392b; font-size: 14px; margin: 4px 0 0; }
+.info { color: #2e7d32; font-size: 14px; margin: 4px 0 0; }
+
+.center-page {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px;
+  background: linear-gradient(#bfe6ff 0 45%, #8fd16a 45%);
+}
+.card {
+  width: 100%; max-width: 380px; background: #fff; border-radius: 24px; padding: 28px;
+  box-shadow: 0 12px 40px rgba(40, 70, 20, .25); display: flex; flex-direction: column; gap: 12px;
+  text-align: center;
+}
+.card h1 { margin: 0 0 4px; font-size: 26px; }
+.tabs { display: flex; background: #eef3e8; border-radius: 999px; padding: 4px; }
+.tabs button {
+  flex: 1; border: 0; background: transparent; padding: 8px; border-radius: 999px;
+  font: inherit; font-weight: 700; cursor: pointer; color: #6b7a5f;
+}
+.tabs button.on { background: #fff; color: #2b3a1f; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+.back { margin-top: 4px; }
+
+/* ---------- 메인 ---------- */
+.home { position: fixed; inset: 0; display: flex; flex-direction: column; }
+.topbar {
+  position: relative; z-index: 5000; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 10px 16px; background: rgba(255,255,255,.75); backdrop-filter: blur(8px);
+  border-bottom: 2px solid rgba(43,58,31,.1);
+}
+.topbar h1 { margin: 0; font-size: 20px; }
+.topbar .count { font-size: 13px; color: #6b7a5f; }
+.topbar .spacer { flex: 1; }
+.topbar .hello { font-size: 14px; font-weight: 600; }
+
+.empty, .hint {
+  position: absolute; left: 50%; transform: translateX(-50%); z-index: 4000;
+  text-align: center; pointer-events: none;
+}
+.empty {
+  top: 58%; background: rgba(255,255,255,.85); padding: 16px 22px; border-radius: 18px;
+  font-weight: 600; line-height: 1.6; box-shadow: 0 6px 20px rgba(0,0,0,.1);
+}
+.hint { bottom: 12px; font-size: 13px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.4); }
+
+/* ---------- 풀밭 ---------- */
+.field {
+  position: relative; flex: 1; overflow: hidden; user-select: none;
+  background: linear-gradient(#9ed8ff, #d9f1ff 40%);
+}
+.sun {
+  position: absolute; top: 6%; right: 8%; width: 80px; height: 80px; border-radius: 50%;
+  background: radial-gradient(#fff6b0, #ffd84d 60%); box-shadow: 0 0 60px 20px rgba(255, 216, 77, .5);
+}
+.cloud {
+  position: absolute; width: 120px; height: 40px; background: #fff; border-radius: 40px; opacity: .9;
+  animation: drift linear infinite;
+}
+.cloud::before, .cloud::after {
+  content: ""; position: absolute; background: #fff; border-radius: 50%;
+}
+.cloud::before { width: 56px; height: 56px; top: -28px; left: 18px; }
+.cloud::after { width: 40px; height: 40px; top: -18px; left: 62px; }
+.cloud.c1 { top: 10%; animation-duration: 70s; animation-delay: -10s; }
+.cloud.c2 { top: 20%; animation-duration: 95s; animation-delay: -50s; transform: scale(.7); }
+.cloud.c3 { top: 5%; animation-duration: 120s; animation-delay: -80s; transform: scale(1.2); }
+@keyframes drift { from { left: -200px; } to { left: 110%; } }
+
+.hill { position: absolute; border-radius: 50%; }
+.hill.h1 { width: 80%; height: 40%; left: -15%; top: 28%; background: #a6dc7e; }
+.hill.h2 { width: 90%; height: 45%; right: -25%; top: 30%; background: #9bd473; }
+
+.grass {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(#8fd16a, #6fbf4a 60%, #5aa83a);
+  border-top-left-radius: 50% 40px; border-top-right-radius: 50% 40px;
+}
+.tuft {
+  position: absolute; width: 14px; height: 10px;
+  border-left: 3px solid #4f9a33; border-right: 3px solid #4f9a33; border-radius: 0 0 50% 50%;
+  opacity: .5;
+}
+.flower {
+  position: absolute; width: 8px; height: 8px; border-radius: 50%; background: currentColor;
+  box-shadow: 0 -6px 0 currentColor, 0 6px 0 currentColor, -6px 0 0 currentColor, 6px 0 0 currentColor;
+}
+.flower::after {
+  content: ""; position: absolute; inset: 0; border-radius: 50%; background: #ffb300;
+}
+
+/* ---------- 강아지 ---------- */
+.dog { position: absolute; left: 0; top: 0; cursor: pointer; will-change: transform; }
+.dog-body { position: absolute; inset: 0; transform-origin: 50% 100%; }
+.dog-face {
+  position: absolute; inset: 0; border-radius: 50%; overflow: hidden;
+  border: 4px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,.25); background: #f3e3c8;
+}
+.dog-face img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+
+.dog-legs { position: absolute; left: 18%; right: 18%; bottom: -14%; height: 26%; }
+.dog-legs i {
+  position: absolute; bottom: 0; width: 16%; height: 100%; background: #c98a4a;
+  border: 2px solid #fff; border-radius: 6px 6px 8px 8px; transform-origin: 50% 0;
+}
+.dog-legs i:nth-child(1) { left: 0; }
+.dog-legs i:nth-child(2) { left: 26%; }
+.dog-legs i:nth-child(3) { left: 58%; }
+.dog-legs i:nth-child(4) { left: 84%; }
+.dog[data-mode="run"] .dog-legs i { animation: leg .28s ease-in-out infinite alternate; }
+.dog[data-mode="run"] .dog-legs i:nth-child(2n) { animation-direction: alternate-reverse; }
+@keyframes leg { from { transform: rotate(-28deg); } to { transform: rotate(28deg); } }
+
+.dog-shadow {
+  position: absolute; left: 50%; bottom: -18%; width: 80%; height: 14%;
+  background: #000; border-radius: 50%; filter: blur(3px); opacity: .35;
+}
+.dog-tag {
+  position: absolute; left: 50%; top: 100%; margin-top: 18%; transform: translateX(-50%);
+  background: rgba(255,255,255,.92); border-radius: 10px; padding: 2px 8px; white-space: nowrap;
+  font-size: 12px; line-height: 1.3; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,.12);
+  pointer-events: none;
+}
+.dog-tag b { display: block; font-size: 13px; }
+.dog-tag span { color: #6b7a5f; font-size: 11px; }
+
+.dog-bubble {
+  position: absolute; left: 60%; top: -30%; background: #fff; border: 2px solid #2b3a1f;
+  border-radius: 14px; padding: 3px 10px; font-weight: 800; font-size: 15px; white-space: nowrap;
+  opacity: 0; transform: scale(.5); pointer-events: none; z-index: 2;
+}
+.dog-bubble.show { animation: bark 1s ease-out; }
+@keyframes bark {
+  0% { opacity: 0; transform: scale(.5); }
+  15% { opacity: 1; transform: scale(1.1); }
+  70% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1) translateY(-10px); }
+}
+
+/* ---------- 업로드 모달 ---------- */
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 9000; background: rgba(20, 35, 10, .45);
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+}
+.modal {
+  position: relative; width: 100%; max-width: 400px; max-height: calc(100vh - 32px); overflow: auto;
+  background: #fff; border-radius: 24px; padding: 24px; box-shadow: 0 20px 60px rgba(0,0,0,.3);
+}
+.modal h2 { margin: 0 0 16px; font-size: 20px; }
+.modal h3 { margin: 22px 0 10px; font-size: 15px; }
+.modal-close {
+  position: absolute; top: 12px; right: 14px; border: 0; background: none; font-size: 26px;
+  cursor: pointer; color: #6b7a5f; line-height: 1;
+}
+.upload-form { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.photo-pick {
+  width: 160px; height: 160px; border-radius: 50%; border: 3px dashed #9bbf86; overflow: hidden;
+  display: flex; align-items: center; justify-content: center; text-align: center; cursor: pointer;
+  background: #f4f9ef; color: #6b7a5f; font-weight: 700;
+}
+.photo-pick small { font-weight: 400; font-size: 11px; }
+.photo-pick img { width: 100%; height: 100%; object-fit: cover; }
+.upload-form .btn { width: 100%; }
+.my-dogs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.my-dogs li { display: flex; align-items: center; gap: 10px; }
+.my-dogs img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+.my-dogs span { flex: 1; font-weight: 600; }
+
+@media (max-width: 600px) {
+  .topbar h1 { font-size: 17px; }
+  .topbar .count { display: none; }
+  .btn { padding: 7px 12px; font-size: 13px; }
+  .sun { width: 56px; height: 56px; }
+}
