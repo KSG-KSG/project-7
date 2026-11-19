@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { Session } from "@supabase/supabase-js";
 import Playground from "@/components/Playground";
 import UploadPanel from "@/components/UploadPanel";
-import { DOG_SELECT, isConfigured, supabase, type Dog } from "@/lib/supabase";
+import { DOG_SELECT, DOG_SELECT_BASIC, isConfigured, supabase, type Dog } from "@/lib/supabase";
 import { CHAT_DAILY_LIMIT, type ChatResponse } from "@/lib/chat";
 
 export default function Home() {
@@ -23,12 +23,16 @@ export default function Home() {
   const loadDogs = useCallback(async () => {
     if (!supabase) return;
     const uid = userIdRef.current;
-    const [all, mine] = await Promise.all([
-      supabase.from("dogs").select(DOG_SELECT).order("created_at", { ascending: false }).limit(60),
-      uid
-        ? supabase.from("dogs").select(DOG_SELECT).eq("owner_id", uid).order("created_at", { ascending: true })
-        : Promise.resolve({ data: [], error: null }),
-    ]);
+    const sb = supabase;
+    const fetchDogs = (cols: string) =>
+      Promise.all([
+        sb.from("dogs").select(cols).order("created_at", { ascending: false }).limit(60),
+        uid
+          ? sb.from("dogs").select(cols).eq("owner_id", uid).order("created_at", { ascending: true })
+          : Promise.resolve({ data: [], error: null }),
+      ]);
+    let [all, mine] = await fetchDogs(DOG_SELECT);
+    if (all.error) [all, mine] = await fetchDogs(DOG_SELECT_BASIC); // personality 컬럼이 없는 DB
     if (!all.error && all.data) setDogs((all.data as unknown as Dog[]).reverse());
     if (!mine.error && mine.data) setMyDogs(mine.data as unknown as Dog[]);
     setLoading(false);

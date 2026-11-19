@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import type { ChatLine, ChatResponse } from "@/lib/chat";
+import { fallbackTrait, type ChatLine, type ChatResponse } from "@/lib/chat";
 
 // 두 강아지의 대화를 Gemini 로 한 번에 생성한다.
 // 순서: 로그인 확인 → 강아지 확인 → 하루 사용량 차감(DB) → Gemini 호출
@@ -79,21 +79,6 @@ export async function POST(req: Request) {
 }
 
 type DogProfile = { name: string; trait: string };
-
-// 성격을 입력하지 않은 강아지는 ID 로 성격 2개를 정한다 (같은 강아지는 항상 같은 성격)
-const TRAITS = [
-  "먹보", "겁쟁이", "허세쟁이", "수다쟁이", "잠꾸러기", "호기심 대장", "새침데기", "장난꾸러기",
-  "애교쟁이", "질투쟁이", "철학자 같은", "운동광", "덜렁이", "깔끔쟁이", "낙천주의자", "투덜이",
-  "의심 많은", "허당", "자기가 사람인 줄 아는", "소심한 반항아",
-];
-
-function fallbackTrait(id: string) {
-  let h = 0;
-  for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  const a = TRAITS[h % TRAITS.length];
-  const b = TRAITS[(h >>> 8) % TRAITS.length];
-  return a === b ? a : `${a}, ${b}`;
-}
 
 // 매번 상황과 관계를 랜덤으로 골라 대화가 반복되지 않게 한다
 const SITUATIONS = [
