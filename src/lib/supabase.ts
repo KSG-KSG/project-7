@@ -18,7 +18,7 @@ export type Dog = {
   owner_id: string;
   name: string;
   image_path: string;
-  /** 성격·특징 (schema.sql 5번). 놀이터 목록 조회에는 포함하지 않는다 */
+  /** 성격·특징 (schema.sql 5번). 비어 있으면 fallbackTrait 으로 자동 성격 */
   personality?: string;
   created_at: string;
   profiles: { nickname: string } | null;
@@ -26,7 +26,9 @@ export type Dog = {
   demo_image?: string;
 };
 
-export const DOG_SELECT = "id, owner_id, name, image_path, created_at, profiles(nickname)";
+export const DOG_SELECT = "id, owner_id, name, image_path, personality, created_at, profiles(nickname)";
+/** schema.sql 5번(personality 컬럼)을 아직 실행하지 않은 DB 용 */
+export const DOG_SELECT_BASIC = "id, owner_id, name, image_path, created_at, profiles(nickname)";
 
 // Storage 경로("{유저ID}/파일명")만 받는다. 외부 URL·data: URL 등은 표시하지 않는다.
 const STORAGE_PATH = /^[0-9a-f-]{36}\/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$/i;

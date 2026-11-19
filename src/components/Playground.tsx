@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { dogImage, type Dog } from "@/lib/supabase";
-import type { ChatLine } from "@/lib/chat";
+import { fallbackTrait, type ChatLine } from "@/lib/chat";
 
 // 풀밭 영역 (필드 높이 대비 비율). 위쪽은 하늘/언덕.
 const GRASS_TOP = 0.42;
@@ -80,6 +80,7 @@ export default function Playground({ dogs, onChat, chatBadge, chatBlocked }: Pro
   const [picked, setPicked] = useState<string[]>([]);
   const [talking, setTalking] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [showTraits, setShowTraits] = useState(false);
   const alive = useRef(true);
   useEffect(() => () => { alive.current = false; }, []);
 
@@ -389,11 +390,56 @@ export default function Playground({ dogs, onChat, chatBadge, chatBlocked }: Pro
         </div>
       ))}
 
+      {showTraits && (
+        <div className="modal-backdrop" onClick={() => setShowTraits(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setShowTraits(false)} aria-label="닫기">×</button>
+            <h2>🐾 강아지 성격</h2>
+            {dogs.length === 0 ? (
+              <p className="muted">아직 놀이터에 강아지가 없어요.</p>
+            ) : (
+              <ul className="trait-list">
+                {dogs.map((d) => {
+                  const own = d.personality?.trim();
+                  return (
+                    <li
+                      key={d.id}
+                      onClick={() => {
+                        setShowTraits(false);
+                        bark(d.id); // 어디 있는지 점프로 알려 주기
+                      }}
+                      title="눌러서 놀이터에서 찾기"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={dogImage(d)} alt={d.name} />
+                      <div>
+                        <b>{d.name}</b>
+                        <span className="owner">{d.profiles?.nickname ?? "익명"}님</span>
+                        <p>
+                          {own || fallbackTrait(d.id)}
+                          {!own && <em className="auto-badge">자동</em>}
+                        </p>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+
       {onChat && (
         <div className="chat-bar">
           {toast && <div className="chat-toast">{toast}</div>}
           {picking && (
             <div className="chat-guide">대화할 강아지 두 마리를 눌러 주세요 ({picked.length}/2)</div>
+          )}
+          <div className="chat-buttons">
+          {!picking && (
+            <button className="btn" onClick={() => setShowTraits(true)} disabled={talking}>
+              🐾 성격 보기
+            </button>
           )}
           <button
             className={`btn ${picking ? "" : "primary"}`}
@@ -403,6 +449,7 @@ export default function Playground({ dogs, onChat, chatBadge, chatBlocked }: Pro
             {talking ? "💬 대화 중…" : picking ? "취소" : "💬 대화시키기"}
             {!picking && !talking && chatBadge && <small className="chat-badge">{chatBadge}</small>}
           </button>
+          </div>
         </div>
       )}
     </div>

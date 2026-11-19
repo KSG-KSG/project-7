@@ -170,6 +170,21 @@ code { background: #eef3e8; padding: 1px 6px; border-radius: 4px; }
   display: flex; flex-direction: column; align-items: center; gap: 8px; width: max-content; max-width: calc(100% - 32px);
 }
 .chat-bar .btn { box-shadow: 0 4px 14px rgba(0,0,0,.2); gap: 6px; }
+.chat-buttons { display: flex; gap: 8px; }
+.trait-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.trait-list li {
+  display: flex; gap: 12px; align-items: flex-start; padding: 8px; border-radius: 14px; cursor: pointer;
+}
+.trait-list li:hover { background: #f4f9ef; }
+.trait-list img { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; flex: none; border: 2px solid #eef3e8; }
+.trait-list div { flex: 1; min-width: 0; }
+.trait-list b { font-size: 15px; }
+.trait-list .owner { margin-left: 6px; font-size: 12px; color: #6b7a5f; }
+.trait-list p { margin: 2px 0 0; font-size: 13px; line-height: 1.45; color: #3d4b30; }
+.auto-badge {
+  margin-left: 6px; font-style: normal; font-size: 11px; font-weight: 700; color: #6b7a5f;
+  background: #eef3e8; border-radius: 999px; padding: 1px 7px; white-space: nowrap;
+}
 .chat-badge { font-size: 12px; font-weight: 600; opacity: .7; }
 .chat-guide, .chat-toast {
   background: rgba(255,255,255,.92); border-radius: 14px; padding: 8px 14px; font-size: 14px;

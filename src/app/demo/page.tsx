@@ -21,20 +21,21 @@ function fakeDogPhoto(fur: string, ear: string) {
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
-const SAMPLES: [string, string, string, string][] = [
-  ["초코", "민지", "#8b5a2b", "#5c3a1a"],
-  ["콩이", "준호", "#f2d7a6", "#c9a06a"],
-  ["보리", "서연", "#e8e0d5", "#a89a88"],
-  ["두부", "하늘", "#fafafa", "#ddd"],
-  ["몽실", "지우", "#d9a066", "#9c6b3a"],
-  ["까미", "도윤", "#3b3b3b", "#1f1f1f"],
+const SAMPLES: [string, string, string, string, string][] = [
+  ["초코", "민지", "#8b5a2b", "#5c3a1a", "갈색 털, 간식 앞에서는 체면 없는 먹보"],
+  ["콩이", "준호", "#f2d7a6", "#c9a06a", "크림색 털, 겁은 많은데 허세는 더 많음"],
+  ["보리", "서연", "#e8e0d5", "#a89a88", ""],
+  ["두부", "하늘", "#fafafa", "#ddd", "새하얀 털, 깔끔쟁이라 웅덩이를 싫어함"],
+  ["몽실", "지우", "#d9a066", "#9c6b3a", ""],
+  ["까미", "도윤", "#3b3b3b", "#1f1f1f", "까만 털, 말수 적은 동네 철학자"],
 ];
 
-const DOGS: Dog[] = SAMPLES.map(([name, owner, fur, ear], i) => ({
+const DOGS: Dog[] = SAMPLES.map(([name, owner, fur, ear, personality], i) => ({
   id: `demo-${i}`,
   owner_id: "demo",
   name,
   image_path: "",
+  personality,
   demo_image: fakeDogPhoto(fur, ear),
   created_at: "",
   profiles: { nickname: owner },
