@@ -6,6 +6,7 @@ import type { Session } from "@supabase/supabase-js";
 import Playground from "@/components/Playground";
 import UploadPanel from "@/components/UploadPanel";
 import { DOG_SELECT, isConfigured, supabase, type Dog } from "@/lib/supabase";
+import { CHAT_DAILY_LIMIT, type ChatResponse } from "@/lib/chat";
 
 export default function Home() {
   const [session, setSession] = useState<Session | null>(null);
@@ -15,6 +16,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);
   const userIdRef = useRef<string | null>(null);
+  const [chatLeft, setChatLeft] = useState<number | null>(null);
 
   // 놀이터에는 최근 60마리만 보여 준다 (새 강아지가 항상 보이도록 최신순).
   // 내 강아지는 60마리 안에 없을 수도 있으니 따로 불러온다.
@@ -65,6 +67,40 @@ export default function Home() {
       .then(({ data }) => setNickname(data?.nickname ?? null));
   }, [session]);
 
+  // 오늘 남은 대화 횟수
+  useEffect(() => {
+    if (!supabase || !session) return setChatLeft(null);
+    supabase.rpc("chat_quota_remaining").then(({ data, error }) => {
+      if (!error && typeof data === "number") setChatLeft(data);
+    });
+  }, [session]);
+
+  const requestChat = useCallback(async (a: Dog, b: Dog) => {
+    const { data } = await supabase!.auth.getSession(); // 만료 직전이면 토큰을 새로 받아 온다
+    const token = data.session?.access_token;
+    if (!token) throw new Error("로그인한 사람만 대화를 시킬 수 있어요.");
+    let body: ChatResponse;
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ dogIds: [a.id, b.id] }),
+      });
+      body = await res.json();
+    } catch {
+      throw new Error("강아지들이 지금 좀 졸려요 😴 잠시 후에 다시 해 보세요.");
+    }
+    if (typeof body.remaining === "number") setChatLeft(body.remaining);
+    if ("error" in body) throw new Error(body.error);
+    return body.lines;
+  }, []);
+
+  const chatBlocked = !session
+    ? "로그인하면 강아지들끼리 대화를 시킬 수 있어요!"
+    : chatLeft === 0
+      ? "오늘은 강아지들이 너무 많이 떠들었어요. 내일 또 만나요 🌙"
+      : null;
+
   if (!isConfigured) {
     return (
       <main className="center-page">
@@ -97,7 +133,12 @@ export default function Home() {
         )}
       </header>
 
-      <Playground dogs={dogs} />
+      <Playground
+        dogs={dogs}
+        onChat={requestChat}
+        chatBlocked={chatBlocked}
+        chatBadge={session && chatLeft !== null ? `${chatLeft}/${CHAT_DAILY_LIMIT}` : undefined}
+      />
 
       {!loading && dogs.length === 0 && (
         <div className="empty">

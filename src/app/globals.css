@@ -149,6 +149,34 @@ code { background: #eef3e8; padding: 1px 6px; border-radius: 4px; }
   100% { opacity: 0; transform: scale(1) translateY(-10px); }
 }
 
+/* ---------- 강아지 대화 ---------- */
+.dog.picked .dog-face { border-color: #ffcf4d; box-shadow: 0 0 0 4px #2b3a1f, 0 6px 14px rgba(0,0,0,.3); }
+.dog-say {
+  position: absolute; left: 50%; bottom: 112%; transform: translateX(-50%) scale(.6);
+  width: max-content; max-width: 190px; background: #fff; border: 2px solid #2b3a1f;
+  border-radius: 16px; padding: 6px 12px; font-weight: 700; font-size: 14px; line-height: 1.35;
+  text-align: center; word-break: keep-all; overflow-wrap: anywhere;
+  opacity: 0; pointer-events: none; z-index: 3; transition: opacity .15s, transform .15s;
+  box-shadow: 0 4px 12px rgba(0,0,0,.15);
+}
+.dog-say::after {
+  content: ""; position: absolute; left: 50%; top: 100%; margin-left: -7px;
+  border: 7px solid transparent; border-top-color: #2b3a1f;
+}
+.dog-say.show { opacity: 1; transform: translateX(-50%) scale(1); }
+
+.chat-bar {
+  position: absolute; left: 50%; bottom: 38px; transform: translateX(-50%); z-index: 4500;
+  display: flex; flex-direction: column; align-items: center; gap: 8px; width: max-content; max-width: calc(100% - 32px);
+}
+.chat-bar .btn { box-shadow: 0 4px 14px rgba(0,0,0,.2); gap: 6px; }
+.chat-badge { font-size: 12px; font-weight: 600; opacity: .7; }
+.chat-guide, .chat-toast {
+  background: rgba(255,255,255,.92); border-radius: 14px; padding: 8px 14px; font-size: 14px;
+  font-weight: 600; text-align: center; box-shadow: 0 4px 14px rgba(0,0,0,.12);
+}
+.chat-toast { background: #2b3a1f; color: #fff; }
+
 /* ---------- 업로드 모달 ---------- */
 .modal-backdrop {
   position: fixed; inset: 0; z-index: 9000; background: rgba(20, 35, 10, .45);

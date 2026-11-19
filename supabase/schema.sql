@@ -142,3 +142,67 @@ create policy "dog photos: delete own folder"
   on storage.objects for delete to authenticated
   using (bucket_id = 'dog-photos'
          and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- 4) 강아지 대화 사용량 (1인당 하루 10회) ------------------------
+-- 횟수는 한국 시간 자정에 초기화된다. 테이블은 사용자가 직접 읽거나 고칠 수 없고,
+-- 아래 함수로만 확인·증가시킬 수 있다 (화면 조작으로 횟수를 늘릴 수 없음).
+create table if not exists public.chat_usage (
+  user_id uuid not null references auth.users (id) on delete cascade,
+  day date not null,
+  count integer not null default 0,
+  primary key (user_id, day)
+);
+
+alter table public.chat_usage enable row level security;
+revoke all on public.chat_usage from anon, authenticated;
+
+-- 1회 사용: 오늘 10회 미만이면 +1 하고 남은 횟수를 돌려준다. 다 썼으면 에러.
+-- insert ... on conflict ... where 한 문장이라 동시에 여러 번 호출해도 10회를 넘지 않는다.
+create or replace function public.use_chat_quota()
+returns integer
+language plpgsql
+security definer set search_path = ''
+as $$
+declare
+  uid uuid := auth.uid();
+  today date := (now() at time zone 'Asia/Seoul')::date;
+  used integer;
+begin
+  if uid is null then
+    raise exception '로그인이 필요해요.' using errcode = '28000';
+  end if;
+
+  insert into public.chat_usage as u (user_id, day, count)
+  values (uid, today, 1)
+  on conflict (user_id, day) do update
+    set count = u.count + 1
+    where u.count < 10
+  returning u.count into used;
+
+  if used is null then
+    raise exception '오늘 대화 횟수(10회)를 모두 썼어요.'
+      using errcode = 'check_violation', hint = 'chat_quota_exceeded';
+  end if;
+
+  return 10 - used;
+end;
+$$;
+
+-- 오늘 남은 횟수 (화면 표시용, 읽기 전용)
+create or replace function public.chat_quota_remaining()
+returns integer
+language sql
+stable
+security definer set search_path = ''
+as $$
+  select 10 - coalesce((
+    select count from public.chat_usage
+    where user_id = auth.uid()
+      and day = (now() at time zone 'Asia/Seoul')::date
+  ), 0);
+$$;
+
+revoke execute on function public.use_chat_quota() from public, anon;
+revoke execute on function public.chat_quota_remaining() from public, anon;
+grant execute on function public.use_chat_quota() to authenticated;
+grant execute on function public.chat_quota_remaining() to authenticated;
