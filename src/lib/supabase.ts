@@ -11,12 +11,15 @@ export const supabase: SupabaseClient | null = isConfigured
 
 export const BUCKET = "dog-photos";
 export const MAX_DOGS_PER_USER = 5; // supabase/schema.sql 의 enforce_dog_limit 과 같은 값
+export const MAX_PERSONALITY = 60; // supabase/schema.sql 의 personality 길이 제한과 같은 값
 
 export type Dog = {
   id: string;
   owner_id: string;
   name: string;
   image_path: string;
+  /** 성격·특징 (schema.sql 5번). 놀이터 목록 조회에는 포함하지 않는다 */
+  personality?: string;
   created_at: string;
   profiles: { nickname: string } | null;
   /** 데모 전용: Storage 대신 이 이미지(data: URL 등)를 그대로 쓴다. DB 에는 없는 필드. */
