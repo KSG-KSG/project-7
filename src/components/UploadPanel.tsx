@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BUCKET, MAX_DOGS_PER_USER, photoUrl, supabase, type Dog } from "@/lib/supabase";
+import { BUCKET, MAX_DOGS_PER_USER, MAX_PERSONALITY, photoUrl, supabase, type Dog } from "@/lib/supabase";
+
+const PERSONALITY_HINT = "성격·특징 (선택) 예: 먹보, 겁 많음, 갈색 곱슬털";
 
 // 업로드 전에 브라우저에서 정사각형(가운데 크롭) 512px JPEG 으로 줄인다.
 async function toSquareJpeg(file: File, size = 512): Promise<Blob> {
@@ -29,6 +31,11 @@ type Props = {
 
 export default function UploadPanel({ userId, myDogs, onClose, onChanged }: Props) {
   const [name, setName] = useState("");
+  const [personality, setPersonality] = useState("");
+  // 내 강아지들의 성격 (놀이터 목록에는 없으므로 따로 불러옴): id → 성격
+  const [traits, setTraits] = useState<Record<string, string>>({});
+  const [editing, setEditing] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -41,7 +48,28 @@ export default function UploadPanel({ userId, myDogs, onClose, onChanged }: Prop
     return () => URL.revokeObjectURL(u);
   }, [file]);
 
+  const myIds = myDogs.map((d) => d.id).join(",");
+  useEffect(() => {
+    if (!supabase || !myIds) return;
+    supabase
+      .from("dogs")
+      .select("id, personality")
+      .in("id", myIds.split(","))
+      .then(({ data }) => {
+        if (data) setTraits(Object.fromEntries(data.map((d) => [d.id, d.personality ?? ""])));
+      });
+  }, [myIds]);
+
   const full = myDogs.length >= MAX_DOGS_PER_USER;
+
+  const saveTrait = async (dog: Dog) => {
+    if (!supabase) return;
+    const value = draft.trim().slice(0, MAX_PERSONALITY);
+    const up = await supabase.from("dogs").update({ personality: value }).eq("id", dog.id);
+    if (up.error) return setError(up.error.message);
+    setTraits((t) => ({ ...t, [dog.id]: value }));
+    setEditing(null);
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,12 +84,19 @@ export default function UploadPanel({ userId, myDogs, onClose, onChanged }: Prop
         upsert: false,
       });
       if (up.error) throw up.error;
-      const ins = await supabase.from("dogs").insert({ owner_id: userId, name: name.trim(), image_path: path });
+      const trait = personality.trim().slice(0, MAX_PERSONALITY);
+      const ins = await supabase.from("dogs").insert({
+        owner_id: userId,
+        name: name.trim(),
+        image_path: path,
+        ...(trait ? { personality: trait } : {}),
+      });
       if (ins.error) {
         await supabase.storage.from(BUCKET).remove([path]);
         throw ins.error;
       }
       setName("");
+      setPersonality("");
       setFile(null);
       onChanged();
     } catch (err) {
@@ -111,6 +146,13 @@ export default function UploadPanel({ userId, myDogs, onClose, onChanged }: Prop
               onChange={(e) => setName(e.target.value)}
               required
             />
+            <input
+              className="input"
+              placeholder={PERSONALITY_HINT}
+              maxLength={MAX_PERSONALITY}
+              value={personality}
+              onChange={(e) => setPersonality(e.target.value)}
+            />
             <button className="btn primary" disabled={busy || !file || !name.trim()}>
               {busy ? "보내는 중…" : "놀이터로 보내기 🐾"}
             </button>
@@ -125,10 +167,43 @@ export default function UploadPanel({ userId, myDogs, onClose, onChanged }: Prop
             <ul className="my-dogs">
               {myDogs.map((d) => (
                 <li key={d.id}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={photoUrl(d.image_path)} alt={d.name} />
-                  <span>{d.name}</span>
-                  <button className="btn small" onClick={() => remove(d)}>내보내기</button>
+                  <div className="my-dog-row">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={photoUrl(d.image_path)} alt={d.name} />
+                    <span>
+                      {d.name}
+                      <small>{traits[d.id] || "성격 미입력 (랜덤)"}</small>
+                    </span>
+                    <button
+                      className="btn small"
+                      onClick={() => {
+                        setEditing(editing === d.id ? null : d.id);
+                        setDraft(traits[d.id] ?? "");
+                      }}
+                    >
+                      성격
+                    </button>
+                    <button className="btn small" onClick={() => remove(d)}>내보내기</button>
+                  </div>
+                  {editing === d.id && (
+                    <form
+                      className="trait-edit"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        void saveTrait(d);
+                      }}
+                    >
+                      <input
+                        className="input"
+                        placeholder={PERSONALITY_HINT}
+                        maxLength={MAX_PERSONALITY}
+                        value={draft}
+                        onChange={(e) => setDraft(e.target.value)}
+                        autoFocus
+                      />
+                      <button className="btn small primary">저장</button>
+                    </form>
+                  )}
                 </li>
               ))}
             </ul>

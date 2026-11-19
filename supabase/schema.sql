@@ -206,3 +206,17 @@ revoke execute on function public.use_chat_quota() from public, anon;
 revoke execute on function public.chat_quota_remaining() from public, anon;
 grant execute on function public.use_chat_quota() to authenticated;
 grant execute on function public.chat_quota_remaining() to authenticated;
+
+-- 5) 강아지 성격·특징 (대화에 사용) -----------------------------
+-- 업로드할 때 또는 나중에 주인이 직접 입력. 비어 있으면 대화 API 가 강아지 ID 로 성격을 정한다.
+alter table public.dogs
+  add column if not exists personality text not null default ''
+  check (char_length(personality) <= 60);
+
+-- 주인은 자기 강아지의 성격만 고칠 수 있다 (이름·사진 경로 등은 그대로)
+drop policy if exists "users can update own dogs" on public.dogs;
+create policy "users can update own dogs"
+  on public.dogs for update to authenticated
+  using (auth.uid() = owner_id) with check (auth.uid() = owner_id);
+
+grant update (personality) on public.dogs to authenticated;
