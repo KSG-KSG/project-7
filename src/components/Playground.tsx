@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { dogImage, type Dog } from "@/lib/supabase";
+import type { ChatLine } from "@/lib/chat";
 
 // 풀밭 영역 (필드 높이 대비 비율). 위쪽은 하늘/언덕.
 const GRASS_TOP = 0.42;
@@ -22,6 +23,8 @@ type DogState = {
   facing: 1 | -1;
   jumpT: number;
   chase: string | null;
+  // 대화 중이면: 상대 강아지, 만나는 지점(mx,my)의 왼쪽(-1)/오른쪽(1) 자리
+  talk: { partner: string; side: -1 | 1; mx: number; my: number } | null;
 };
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
@@ -38,8 +41,12 @@ function newState(): DogState {
     facing: Math.random() < 0.5 ? 1 : -1,
     jumpT: 0,
     chase: null,
+    talk: null,
   };
 }
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
 // 고정된 꽃·풀 장식 (렌더마다 바뀌지 않도록 시드 기반)
 function seeded(n: number) {
@@ -51,11 +58,36 @@ const FLOWERS = seeded(38);
 const TUFTS = seeded(60);
 const FLOWER_COLORS = ["#fff", "#ffd84d", "#ff8fb1", "#c9a8ff", "#fff"];
 
-export default function Playground({ dogs }: { dogs: Dog[] }) {
+type Props = {
+  dogs: Dog[];
+  /** 두 강아지의 대화를 받아 온다. 실패하면 사용자에게 보여 줄 메시지로 throw. 없으면 대화 버튼을 숨김 */
+  onChat?: (a: Dog, b: Dog) => Promise<ChatLine[]>;
+  /** 대화 버튼 옆 표시 (예: "7/10") */
+  chatBadge?: string;
+  /** 값이 있으면 대화를 시킬 수 없고, 버튼을 누르면 이 안내를 보여 준다 */
+  chatBlocked?: string | null;
+};
+
+export default function Playground({ dogs, onChat, chatBadge, chatBlocked }: Props) {
   const fieldRef = useRef<HTMLDivElement>(null);
   const elRefs = useRef(new Map<string, HTMLDivElement>());
   const states = useRef(new Map<string, DogState>());
   const initialized = useRef(false);
+  const dogsRef = useRef(dogs);
+  dogsRef.current = dogs;
+
+  const [picking, setPicking] = useState(false);
+  const [picked, setPicked] = useState<string[]>([]);
+  const [talking, setTalking] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const alive = useRef(true);
+  useEffect(() => () => { alive.current = false; }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3500);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   // 강아지 목록이 바뀌면 상태 동기화
   useEffect(() => {
@@ -99,6 +131,27 @@ export default function Playground({ dogs }: { dogs: Dog[] }) {
           if (s.mode === "jump") {
             s.jumpT += dt;
             if (s.jumpT > 0.7) { s.mode = "idle"; s.timer = rand(0.5, 1.5); }
+          } else if (s.talk) {
+            // 대화 중: 만나는 지점 옆 자리로 가서 상대를 바라보고 서 있기
+            const gap = BASE_SIZE * sizeFactor * 0.75;
+            s.chase = null;
+            s.tx = s.talk.mx + (s.talk.side * gap) / W;
+            s.ty = s.talk.my;
+            const dxPx = (s.tx - s.x) * W;
+            const dyPx = (s.ty - s.y) * grassH;
+            const dist = Math.hypot(dxPx, dyPx);
+            if (dist > 3) {
+              s.mode = "run";
+              s.speed = 170;
+              const step = Math.min(dist, s.speed * dt);
+              s.x += (dxPx / dist) * step / W;
+              s.y += (dyPx / dist) * step / grassH;
+              if (Math.abs(dxPx) > 2) s.facing = dxPx > 0 ? 1 : -1;
+              s.phase += dt * s.speed * 0.09;
+            } else {
+              s.mode = "idle";
+              s.facing = s.talk.side === -1 ? 1 : -1;
+            }
           } else if (s.mode === "idle" && s.timer <= 0) {
             s.mode = "run";
             s.speed = rand(70, 170);
@@ -114,7 +167,7 @@ export default function Playground({ dogs }: { dogs: Dog[] }) {
             }
           }
 
-          if (s.mode === "run") {
+          if (s.mode === "run" && !s.talk) {
             if (s.chase) {
               const o = states.current.get(s.chase);
               if (o) { s.tx = o.x; s.ty = o.y; } else s.chase = null;
@@ -163,7 +216,7 @@ export default function Playground({ dogs }: { dogs: Dog[] }) {
           el.style.transform = `translate(${px - size / 2}px, ${py - size}px)`;
           el.style.width = `${size}px`;
           el.style.height = `${size}px`;
-          el.style.zIndex = String(10 + Math.round(s.y * 1000));
+          el.style.zIndex = String(10 + Math.round(s.y * 1000) + (s.talk ? 2000 : 0));
           el.dataset.mode = s.mode;
           const body = el.firstElementChild as HTMLElement | null;
           if (body) {
@@ -184,6 +237,86 @@ export default function Playground({ dogs }: { dogs: Dog[] }) {
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, []);
+
+  // ---------- 대화 ----------
+  const say = (id: string | null, text = "") => {
+    for (const [did, el] of elRefs.current) {
+      const b = el.querySelector<HTMLElement>(".dog-say");
+      if (!b) continue;
+      if (did === id) {
+        b.textContent = text;
+        b.classList.add("show");
+      } else b.classList.remove("show");
+    }
+  };
+
+  const startChat = async (aId: string, bId: string) => {
+    const a = dogsRef.current.find((d) => d.id === aId);
+    const b = dogsRef.current.find((d) => d.id === bId);
+    const sa = states.current.get(aId);
+    const sb = states.current.get(bId);
+    if (!a || !b || !sa || !sb || !onChat) return;
+
+    setTalking(true);
+    // 두 마리 사이 지점에서 만나기. 먼저 고른 강아지가 원래 왼쪽에 있었으면 왼쪽 자리
+    const mx = clamp((sa.x + sb.x) / 2, 0.2, 0.8);
+    const my = clamp((sa.y + sb.y) / 2, 0.15, 0.85);
+    const aLeft = sa.x <= sb.x;
+    sa.talk = { partner: bId, side: aLeft ? -1 : 1, mx, my };
+    sb.talk = { partner: aId, side: aLeft ? 1 : -1, mx, my };
+    say(aId, "킁킁…");
+
+    const started = performance.now();
+    try {
+      const lines = await onChat(a, b);
+      // 서로에게 달려가는 시간을 조금 기다린다
+      await sleep(Math.max(0, 1500 - (performance.now() - started)));
+      for (const line of lines) {
+        if (!alive.current) return;
+        const id = line.speaker === 0 ? aId : bId;
+        if (!states.current.has(aId) || !states.current.has(bId)) break; // 누가 놀이터를 떠남
+        say(id, line.text);
+        await sleep(clamp(1400 + line.text.length * 90, 1800, 4500));
+      }
+    } catch (e) {
+      if (alive.current) setToast(e instanceof Error ? e.message : "대화를 불러오지 못했어요.");
+    } finally {
+      say(null);
+      for (const s of [sa, sb]) {
+        s.talk = null;
+        s.mode = "idle";
+        s.timer = rand(0.3, 1.2);
+      }
+      if (alive.current) {
+        setTalking(false);
+        setPicked([]);
+      }
+    }
+  };
+
+  const toggleChatMode = () => {
+    if (talking) return;
+    if (picking) {
+      setPicking(false);
+      setPicked([]);
+      return;
+    }
+    if (chatBlocked) return setToast(chatBlocked);
+    if (dogs.length < 2) return setToast("강아지가 두 마리 이상 있어야 대화할 수 있어요.");
+    setPicking(true);
+    setPicked([]);
+  };
+
+  const onDogClick = (id: string) => {
+    if (!picking) return bark(id);
+    if (picked.includes(id)) return setPicked(picked.filter((p) => p !== id));
+    const next = [...picked, id];
+    setPicked(next);
+    if (next.length === 2) {
+      setPicking(false);
+      void startChat(next[0], next[1]);
+    }
+  };
 
   const bark = (id: string) => {
     const s = states.current.get(id);
@@ -232,16 +365,17 @@ export default function Playground({ dogs }: { dogs: Dog[] }) {
       {dogs.map((d) => (
         <div
           key={d.id}
-          className="dog"
+          className={`dog${picked.includes(d.id) ? " picked" : ""}`}
           ref={(el) => {
             if (el) elRefs.current.set(d.id, el);
             else elRefs.current.delete(d.id);
           }}
-          onClick={() => bark(d.id)}
+          onClick={() => onDogClick(d.id)}
           title={`${d.name} (${d.profiles?.nickname ?? "익명"}님의 강아지)`}
         >
           <div className="dog-body">
             <div className="dog-bubble">멍!</div>
+            <div className="dog-say" />
             <div className="dog-face">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={dogImage(d)} alt={d.name} draggable={false} />
@@ -254,6 +388,23 @@ export default function Playground({ dogs }: { dogs: Dog[] }) {
           </div>
         </div>
       ))}
+
+      {onChat && (
+        <div className="chat-bar">
+          {toast && <div className="chat-toast">{toast}</div>}
+          {picking && (
+            <div className="chat-guide">대화할 강아지 두 마리를 눌러 주세요 ({picked.length}/2)</div>
+          )}
+          <button
+            className={`btn ${picking ? "" : "primary"}`}
+            onClick={toggleChatMode}
+            disabled={talking}
+          >
+            {talking ? "💬 대화 중…" : picking ? "취소" : "💬 대화시키기"}
+            {!picking && !talking && chatBadge && <small className="chat-badge">{chatBadge}</small>}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

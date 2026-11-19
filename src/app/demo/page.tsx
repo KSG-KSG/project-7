@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Playground from "@/components/Playground";
 import type { Dog } from "@/lib/supabase";
+import type { ChatLine } from "@/lib/chat";
 
 // Supabase 없이 놀이터 애니메이션을 확인하는 데모 페이지
 function fakeDogPhoto(fur: string, ear: string) {
@@ -39,6 +40,19 @@ const DOGS: Dog[] = SAMPLES.map(([name, owner, fur, ear], i) => ({
   profiles: { nickname: owner },
 }));
 
+// 데모는 API 를 부르지 않고 샘플 대화를 보여 준다
+const SAMPLE_CHATS: string[][] = [
+  ["킁킁, 너 간식 냄새 난다!", "쉿… 주머니에 육포 숨겨 놨어", "나 반만 주면 안 돼?", "꼬리 세 번 흔들면 생각해 볼게", "살랑살랑살랑! 됐지?", "…좋아, 한 입만이야!"],
+  ["저기 공 봤어?!", "봤지! 내가 먼저 찜!", "누가 빨리 가나 시합하자", "좋아, 하나 둘… 멍!", "야, 출발 전에 뛰면 반칙이야!", "헤헤 이미 늦었지롱~"],
+  ["오늘 산책 몇 번 했어?", "아직 한 번… 너무 적지?", "나는 세 번! 부럽지?", "우리 집사는 소파랑 친해", "같이 현관 앞에서 낑낑대 보자", "작전 개시다 멍!"],
+];
+
+async function demoChat(): Promise<ChatLine[]> {
+  await new Promise((r) => setTimeout(r, 600));
+  const pick = SAMPLE_CHATS[Math.floor(Math.random() * SAMPLE_CHATS.length)];
+  return pick.map((text, i) => ({ speaker: (i % 2) as 0 | 1, text }));
+}
+
 export default function DemoPage() {
   return (
     <main className="home">
@@ -48,7 +62,7 @@ export default function DemoPage() {
         <div className="spacer" />
         <Link className="btn" href="/">실제 놀이터로</Link>
       </header>
-      <Playground dogs={DOGS} />
+      <Playground dogs={DOGS} onChat={demoChat} chatBadge="샘플" />
       <div className="hint">강아지를 눌러 보세요!</div>
     </main>
   );
