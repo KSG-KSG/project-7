@@ -44,15 +44,31 @@ export default function Home() {
     sb.auth.getSession().then(({ data }) => setSession(data.session));
     const { data: sub } = sb.auth.onAuthStateChange((_e, s) => setSession(s));
 
-    // 다른 사람이 강아지를 올리거나 내보내면 실시간 반영
+    // 다른 사람이 강아지를 올리거나 내보내면 실시간 반영.
+    // 휴대폰 화면이 꺼지거나 탭이 백그라운드에 있으면 실시간 연결이 끊겨 그동안의 변경을 놓치므로
+    // (재)연결될 때, 화면으로 돌아올 때, 그리고 30초마다 한 번씩 목록을 다시 불러온다.
     const channel = sb
       .channel("dogs-feed")
       .on("postgres_changes", { event: "*", schema: "public", table: "dogs" }, () => loadDogs())
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") loadDogs();
+      });
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") loadDogs();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    const poll = setInterval(() => {
+      if (document.visibilityState === "visible") loadDogs();
+    }, 30_000);
 
     return () => {
       sub.subscription.unsubscribe();
       sb.removeChannel(channel);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+      clearInterval(poll);
     };
   }, [loadDogs]);
 
